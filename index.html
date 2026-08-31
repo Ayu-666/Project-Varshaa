@@ -1,0 +1,3662 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>VARSHA AI | Rainfall Intelligence</title>
+
+<!-- Leaflet (free, no API key) for the real West Bengal district map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+
+/* =========================================================
+   VARSHA AI
+   Single-file API-ready prototype
+========================================================= */
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+:root{
+    --bg:#02070b;
+    --panel:#09131b;
+    --panel2:#0d1c26;
+    --line:rgba(255,255,255,.08);
+    --text:#eefaff;
+    --muted:#8197a3;
+    --cyan:#43d9ff;
+    --green:#3ee3a0;
+    --red:#ff6276;
+    --blue:#4cbcff;
+    --yellow:#ffd166;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 10% 10%,rgba(0,180,255,.12),transparent 28%),
+        radial-gradient(circle at 90% 80%,rgba(0,255,170,.08),transparent 25%),
+        var(--bg);
+    color:var(--text);
+    font-family:Segoe UI,Arial,sans-serif;
+    overflow-x:hidden;
+}
+
+button,
+input{
+    font:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+.hidden{
+    display:none!important;
+}
+
+/* =========================================================
+   BACKGROUND
+========================================================= */
+
+.grid{
+    position:fixed;
+    inset:0;
+    z-index:-5;
+    opacity:.3;
+    background-image:
+        linear-gradient(rgba(70,210,255,.035) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(70,210,255,.035) 1px,transparent 1px);
+    background-size:55px 55px;
+}
+
+#particles{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:-2;
+}
+
+.particle{
+    position:absolute;
+    width:2px;
+    height:2px;
+    border-radius:50%;
+    background:#55dcff;
+    opacity:.4;
+    animation:float 12s linear infinite;
+}
+
+@keyframes float{
+    from{
+        transform:translateY(110vh);
+    }
+    to{
+        transform:translateY(-10vh);
+    }
+}
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+#loginScreen{
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:
+        radial-gradient(circle at center,rgba(0,190,255,.13),#010406 65%);
+}
+
+.login{
+    width:min(430px,92%);
+    padding:42px;
+    text-align:center;
+    border:1px solid var(--line);
+    border-radius:28px;
+    background:rgba(7,18,27,.9);
+    backdrop-filter:blur(25px);
+    box-shadow:0 30px 100px rgba(0,0,0,.7);
+    animation:loginIn .7s ease;
+}
+
+@keyframes loginIn{
+    from{
+        opacity:0;
+        transform:translateY(25px) scale(.96);
+    }
+    to{
+        opacity:1;
+        transform:none;
+    }
+}
+
+.login-logo{
+    font-size:40px;
+    font-weight:900;
+    letter-spacing:4px;
+}
+
+.login-logo span{
+    color:var(--cyan);
+}
+
+.login p{
+    margin:10px 0 28px;
+    color:var(--muted);
+}
+
+.login input{
+    width:100%;
+    margin-top:12px;
+    padding:15px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    outline:none;
+    color:white;
+    background:rgba(255,255,255,.04);
+}
+
+.login input:focus{
+    border-color:var(--cyan);
+}
+
+.login button{
+    width:100%;
+    margin-top:18px;
+    padding:15px;
+    border:0;
+    border-radius:12px;
+    color:white;
+    font-weight:800;
+    background:linear-gradient(100deg,#087dbb,#10b98d);
+}
+
+#loginMessage{
+    min-height:20px;
+    margin-top:14px;
+    font-size:13px;
+}
+
+/* =========================================================
+   NAVBAR
+========================================================= */
+
+nav{
+    position:sticky;
+    top:0;
+    z-index:500;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    padding:15px 5%;
+    border-bottom:1px solid var(--line);
+    background:rgba(2,8,13,.78);
+    backdrop-filter:blur(20px);
+}
+
+.nav-logo{
+    font-size:21px;
+    font-weight:900;
+    letter-spacing:2px;
+}
+
+.nav-logo span{
+    color:var(--cyan);
+}
+
+.nav-links{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:5px;
+}
+
+.nav-links button{
+    padding:9px 12px;
+    border:0;
+    border-radius:9px;
+    color:#8298a4;
+    background:transparent;
+}
+
+.nav-links button:hover{
+    color:white;
+    background:rgba(255,255,255,.06);
+}
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero{
+    max-width:1350px;
+    min-height:680px;
+    margin:auto;
+    padding:90px 5%;
+    display:grid;
+    grid-template-columns:1.2fr .8fr;
+    align-items:center;
+    gap:50px;
+}
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 14px;
+    border:1px solid rgba(67,217,255,.18);
+    border-radius:50px;
+    color:var(--cyan);
+    font-size:10px;
+    letter-spacing:2px;
+}
+
+.dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 14px var(--green);
+}
+
+.hero h1{
+    margin-top:25px;
+    font-size:clamp(50px,7vw,88px);
+    line-height:.95;
+    letter-spacing:-5px;
+}
+
+.hero h1 span{
+    background:linear-gradient(90deg,#fff,#43d9ff,#3ee3a0);
+    -webkit-background-clip:text;
+    color:transparent;
+}
+
+.hero p{
+    max-width:700px;
+    margin-top:25px;
+    color:var(--muted);
+    line-height:1.8;
+}
+
+.hero-buttons{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-top:30px;
+}
+
+.primary,
+.secondary{
+    padding:14px 20px;
+    border-radius:12px;
+    font-weight:800;
+}
+
+.primary{
+    border:0;
+    color:white;
+    background:linear-gradient(100deg,#087dbb,#10b98d);
+}
+
+.secondary{
+    border:1px solid var(--line);
+    color:white;
+    background:rgba(255,255,255,.04);
+}
+
+/* =========================================================
+   ORB
+========================================================= */
+
+.orb-container{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.orb{
+    position:relative;
+    width:min(350px,75vw);
+    aspect-ratio:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(60,210,255,.18),transparent 68%);
+    border:1px solid rgba(60,210,255,.2);
+    box-shadow:0 0 100px rgba(40,190,255,.12);
+    animation:orb 5s ease-in-out infinite;
+}
+
+@keyframes orb{
+    50%{
+        transform:translateY(-10px);
+    }
+}
+
+.ring{
+    position:absolute;
+    inset:20px;
+    border-radius:50%;
+    border:1px solid rgba(60,210,255,.15);
+    animation:rotate 12s linear infinite;
+}
+
+.ring.two{
+    inset:55px;
+    animation-duration:8s;
+    animation-direction:reverse;
+}
+
+@keyframes rotate{
+    to{
+        transform:rotate(360deg);
+    }
+}
+
+.orb-icon{
+    font-size:100px;
+    filter:drop-shadow(0 0 30px rgba(60,210,255,.6));
+}
+
+/* =========================================================
+   GENERAL
+========================================================= */
+
+.container{
+    max-width:1350px;
+    margin:auto;
+    padding:70px 5%;
+}
+
+.label{
+    color:var(--cyan);
+    font-size:10px;
+    letter-spacing:2px;
+}
+
+.title{
+    margin-top:8px;
+    font-size:36px;
+}
+
+.description{
+    margin-top:8px;
+    color:var(--muted);
+}
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:15px;
+    margin-top:25px;
+}
+
+.card{
+    padding:23px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:rgba(255,255,255,.035);
+    transition:.25s;
+}
+
+.card:hover{
+    transform:translateY(-4px);
+    border-color:rgba(67,217,255,.2);
+}
+
+.card small{
+    color:#718792;
+    letter-spacing:1.5px;
+}
+
+.card strong{
+    display:block;
+    margin-top:12px;
+    font-size:30px;
+}
+
+.card span{
+    display:block;
+    margin-top:7px;
+    color:var(--green);
+    font-size:11px;
+}
+
+/* =========================================================
+   DISTRICTS
+========================================================= */
+
+.database{
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:15px;
+    margin-top:25px;
+}
+
+.district-list{
+    max-height:650px;
+    overflow-y:auto;
+    padding:12px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:rgba(255,255,255,.025);
+}
+
+.search{
+    width:100%;
+    padding:12px;
+    margin-bottom:10px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    outline:none;
+    color:white;
+    background:rgba(255,255,255,.04);
+}
+
+.district{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px;
+    margin-bottom:4px;
+    border:0;
+    border-radius:10px;
+    color:#b6c8d0;
+    text-align:left;
+    background:transparent;
+}
+
+.district:hover,
+.district.active{
+    color:white;
+    background:rgba(67,217,255,.08);
+}
+
+.indicator{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+}
+
+.red{
+    background:var(--red);
+}
+
+.blue{
+    background:var(--blue);
+}
+
+.green{
+    background:var(--green);
+}
+
+.detail{
+    min-height:650px;
+    padding:30px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:rgba(255,255,255,.025);
+}
+
+.detail-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+}
+
+.detail h3{
+    font-size:30px;
+}
+
+.status-text{
+    margin-top:8px;
+    font-size:12px;
+}
+
+.detail-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-top:30px;
+}
+
+.detail-box{
+    padding:17px;
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:15px;
+    background:rgba(255,255,255,.035);
+}
+
+.detail-box small{
+    color:#718792;
+}
+
+.detail-box strong{
+    display:block;
+    margin-top:8px;
+    font-size:22px;
+}
+
+.explanation{
+    margin-top:20px;
+    padding:20px;
+    border-radius:15px;
+    color:#8499a4;
+    line-height:1.8;
+    background:rgba(67,217,255,.035);
+}
+
+/* =========================================================
+   MAP
+========================================================= */
+
+.map-wrapper{
+    margin-top:25px;
+    display:grid;
+    grid-template-columns:1fr 300px;
+    min-height:600px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    border-radius:25px;
+    background:rgba(255,255,255,.025);
+}
+
+.map{
+    position:relative;
+    min-height:600px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+#leafletMap{
+    width:100%;
+    height:100%;
+    min-height:600px;
+    border-radius:15px;
+}
+
+/* Leaflet chrome restyled to match the VARSHA dark theme */
+.leaflet-container{
+    background:#050c12;
+    font-family:Segoe UI,Arial,sans-serif;
+}
+
+/* Standard OSM tiles are light by default — invert/tint them
+   dark so the map matches the VARSHA theme without needing
+   any paid/keyed dark-tile provider. */
+.leaflet-tile-pane{
+    filter:invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.7);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip{
+    background:#0d1c26;
+    color:var(--text);
+    border:1px solid var(--line);
+}
+
+.leaflet-popup-content{
+    margin:12px 14px;
+}
+
+.leaflet-popup-content strong{
+    display:block;
+    margin-bottom:4px;
+}
+
+.leaflet-control-zoom a{
+    background:#0d1c26!important;
+    color:var(--text)!important;
+    border-color:var(--line)!important;
+}
+
+.leaflet-control-attribution{
+    background:rgba(2,8,13,.75)!important;
+    color:var(--muted)!important;
+}
+
+.leaflet-control-attribution a{
+    color:var(--cyan)!important;
+}
+
+.district-marker{
+    border-radius:50%;
+    border:2px solid;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    font-weight:800;
+    color:#02070b;
+    cursor:pointer;
+}
+
+.district-marker.red{
+    background:var(--red);
+    border-color:#ffb3bc;
+}
+
+.district-marker.blue{
+    background:var(--blue);
+    border-color:#c3e8ff;
+}
+
+.district-marker.green{
+    background:var(--green);
+    border-color:#c8ffe9;
+}
+
+.map-panel{
+    padding:28px;
+    border-left:1px solid var(--line);
+    background:rgba(2,10,16,.65);
+}
+
+.map-panel h3{
+    font-size:24px;
+}
+
+.map-panel p{
+    margin-top:12px;
+    color:var(--muted);
+    line-height:1.7;
+}
+
+/* =========================================================
+   VOICE
+========================================================= */
+
+.voice{
+    max-width:1050px;
+    margin:20px auto 80px;
+    padding:0 5%;
+    text-align:center;
+}
+
+.voice-card{
+    padding:45px 25px;
+    border:1px solid var(--line);
+    border-radius:30px;
+    background:radial-gradient(circle at center,rgba(0,190,255,.07),rgba(255,255,255,.025));
+}
+
+.voice-circle{
+    width:125px;
+    height:125px;
+    margin:auto;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    border-radius:50%;
+    font-size:45px;
+    border:1px solid rgba(67,217,255,.3);
+    background:radial-gradient(circle,rgba(67,217,255,.18),rgba(67,217,255,.02));
+}
+
+.voice-circle.listening{
+    animation:listening 1s infinite;
+}
+
+@keyframes listening{
+    50%{
+        transform:scale(1.12);
+        box-shadow:0 0 80px rgba(67,217,255,.3);
+    }
+}
+
+.voice h2{
+    margin-top:25px;
+    font-size:30px;
+}
+
+#voiceStatus{
+    margin-top:20px;
+    color:#8ca1ac;
+}
+
+#transcript{
+    min-height:50px;
+    margin-top:12px;
+    color:var(--cyan);
+    line-height:1.7;
+}
+
+.voice-btn{
+    margin-top:15px;
+    padding:15px 28px;
+    border:0;
+    border-radius:13px;
+    color:white;
+    font-weight:800;
+    background:linear-gradient(100deg,#087dbb,#10b98d);
+}
+
+/* =========================================================
+   API STATUS
+========================================================= */
+
+.api-panel{
+    margin-top:25px;
+    padding:25px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:rgba(255,255,255,.03);
+}
+
+.api-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    padding:13px 0;
+    border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.api-row:last-child{
+    border-bottom:0;
+}
+
+.api-name{
+    color:#c4d5dc;
+}
+
+.api-status{
+    padding:6px 10px;
+    border-radius:30px;
+    font-size:10px;
+}
+
+.demo{
+    color:var(--yellow);
+    background:rgba(255,209,102,.08);
+}
+
+.ready{
+    color:var(--green);
+    background:rgba(62,227,160,.08);
+}
+
+/* =========================================================
+   SEEDING
+========================================================= */
+
+.seeding{
+    max-width:1100px;
+    margin:50px auto 90px;
+    padding:55px 5%;
+    text-align:center;
+    border:1px solid rgba(67,217,255,.12);
+    border-radius:30px;
+    background:linear-gradient(135deg,rgba(0,150,220,.09),rgba(0,230,160,.05));
+}
+
+.seeding h2{
+    font-size:36px;
+}
+
+.seeding p{
+    max-width:760px;
+    margin:15px auto 25px;
+    color:var(--muted);
+    line-height:1.8;
+}
+
+.seeding-video{
+    max-width:760px;
+    margin:0 auto 25px;
+    border-radius:20px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    background:#000;
+}
+
+.seeding-video video{
+    display:block;
+    width:100%;
+    max-height:430px;
+    background:#000;
+}
+
+.seeding-video-fallback{
+    padding:40px 20px;
+    color:var(--muted);
+    font-size:14px;
+}
+
+.seeding-video-fallback a{
+    color:var(--cyan);
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+footer{
+    padding:50px 20px;
+    text-align:center;
+    color:#607681;
+    border-top:1px solid var(--line);
+}
+
+footer strong{
+    color:white;
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+#toast{
+    position:fixed;
+    left:50%;
+    bottom:25px;
+    z-index:10000;
+    padding:13px 18px;
+    border:1px solid rgba(67,217,255,.2);
+    border-radius:12px;
+    background:rgba(2,12,19,.95);
+    transform:translate(-50%,30px);
+    opacity:0;
+    transition:.3s;
+}
+
+#toast.show{
+    opacity:1;
+    transform:translate(-50%,0);
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:1000px){
+
+    .hero{
+        grid-template-columns:1fr;
+        text-align:center;
+    }
+
+    .hero p{
+        margin-left:auto;
+        margin-right:auto;
+    }
+
+    .hero-buttons{
+        justify-content:center;
+    }
+
+    .stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .database{
+        grid-template-columns:1fr;
+    }
+
+    .district-list{
+        max-height:300px;
+    }
+
+    .map-wrapper{
+        grid-template-columns:1fr;
+    }
+
+    .map-panel{
+        border-left:0;
+        border-top:1px solid var(--line);
+    }
+}
+
+@media(max-width:600px){
+
+    nav{
+        flex-direction:column;
+    }
+
+    .nav-links{
+        justify-content:center;
+    }
+
+    .stats{
+        grid-template-columns:1fr;
+    }
+
+    .detail-grid{
+        grid-template-columns:1fr 1fr;
+    }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="grid"></div>
+<div id="particles"></div>
+
+<!-- =========================================================
+     LOGIN
+========================================================= -->
+
+<section id="loginScreen">
+
+<div class="login">
+
+    <div class="login-logo">
+        VARSHA<span>•AI</span>
+    </div>
+
+    <p>
+        Environmental Intelligence System
+    </p>
+
+    <form id="loginForm">
+
+        <input
+            id="username"
+            placeholder="Username"
+            autocomplete="username"
+            required
+        >
+
+        <input
+            id="password"
+            type="password"
+            placeholder="Password"
+            autocomplete="current-password"
+            required
+        >
+
+        <button type="submit">
+            Enter VARSHA
+        </button>
+
+    </form>
+
+    <div id="loginMessage"></div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     APPLICATION
+========================================================= -->
+
+<div id="app" class="hidden">
+
+<nav>
+
+<div class="nav-logo">
+    VARSHA<span>•AI</span>
+</div>
+
+<div class="nav-links">
+
+    <button onclick="scrollToSection('dashboard')">
+        Dashboard
+    </button>
+
+    <button onclick="scrollToSection('districts')">
+        Districts
+    </button>
+
+    <button onclick="scrollToSection('mapSection')">
+        Map
+    </button>
+
+    <button onclick="scrollToSection('voice')">
+        🎤 VARSHA
+    </button>
+
+    <button onclick="openSeeding()">
+        ☁️ Seeding
+    </button>
+
+    <button onclick="location.reload()">
+        Logout
+    </button>
+
+</div>
+
+</nav>
+
+<!-- =========================================================
+     HERO
+========================================================= -->
+
+<section class="hero">
+
+<div>
+
+    <div class="badge">
+
+        <span class="dot"></span>
+
+        ENVIRONMENTAL INTELLIGENCE ONLINE
+
+    </div>
+
+    <h1>
+        Read the
+        <span>Rain.</span>
+    </h1>
+
+    <p>
+
+        VARSHA is an API-ready rainfall intelligence
+        platform designed to monitor West Bengal,
+        analyse environmental conditions and provide
+        understandable explanations through voice.
+
+    </p>
+
+    <div class="hero-buttons">
+
+        <button
+            class="primary"
+            onclick="scrollToSection('districts')"
+        >
+            Explore Districts
+        </button>
+
+        <button
+            class="secondary"
+            onclick="startListening()"
+        >
+            🎤 Ask VARSHA
+        </button>
+
+    </div>
+
+</div>
+
+
+<div class="orb-container">
+
+    <div class="orb">
+
+        <div class="ring"></div>
+        <div class="ring two"></div>
+
+        <div class="orb-icon">
+            🌧️
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     DASHBOARD
+========================================================= -->
+
+<section
+    class="container"
+    id="dashboard"
+>
+
+<div class="label">
+    LIVE SYSTEM OVERVIEW
+</div>
+
+<h2 class="title">
+    West Bengal
+</h2>
+
+<p class="description">
+    Current interface values are demonstration data.
+</p>
+
+
+<div class="stats">
+
+    <div class="card">
+
+        <small>
+            DISTRICTS
+        </small>
+
+        <strong>
+            23
+        </strong>
+
+        <span>
+            Full state coverage
+        </span>
+
+    </div>
+
+
+    <div class="card">
+
+        <small>
+            RAINFALL
+        </small>
+
+        <strong id="stateRainfall">
+            642 mm
+        </strong>
+
+        <span>
+            Demo / API ready
+        </span>
+
+    </div>
+
+
+    <div class="card">
+
+        <small>
+            AQI
+        </small>
+
+        <strong id="stateAQI">
+            82
+        </strong>
+
+        <span>
+            Demo / API ready
+        </span>
+
+    </div>
+
+
+    <div class="card">
+
+        <small>
+            SYSTEM
+        </small>
+
+        <strong>
+            READY
+        </strong>
+
+        <span>
+            API architecture prepared
+        </span>
+
+    </div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     DISTRICT DATABASE
+========================================================= -->
+
+<section
+    class="container"
+    id="districts"
+>
+
+<div class="label">
+    DISTRICT INTELLIGENCE
+</div>
+
+<h2 class="title">
+    23 Districts
+</h2>
+
+<p class="description">
+    Select a district to inspect environmental indicators.
+</p>
+
+
+<div class="database">
+
+
+    <div class="district-list">
+
+        <input
+            class="search"
+            id="districtSearch"
+            placeholder="Search district..."
+            oninput="filterDistricts()"
+        >
+
+        <div id="districtButtons"></div>
+
+    </div>
+
+
+    <div class="detail">
+
+        <div class="detail-head">
+
+            <div>
+
+                <h3 id="selectedDistrict">
+                    Kolkata
+                </h3>
+
+                <div
+                    class="status-text"
+                    id="selectedStatus"
+                >
+                    ● Monitor
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="detail-grid">
+
+            <div class="detail-box">
+
+                <small>
+                    RAINFALL
+                </small>
+
+                <strong id="selectedRainfall">
+                    1020 mm
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    REFERENCE
+                </small>
+
+                <strong id="selectedNormal">
+                    1150 mm
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    DEPARTURE
+                </small>
+
+                <strong id="selectedDeparture">
+                    -11.3%
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    AQI
+                </small>
+
+                <strong id="selectedAQI">
+                    118
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    HUMIDITY
+                </small>
+
+                <strong id="selectedHumidity">
+                    72%
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    TEMPERATURE
+                </small>
+
+                <strong id="selectedTemperature">
+                    31°C
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    FEELS LIKE
+                </small>
+
+                <strong id="selectedFeelsLike">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    WIND
+                </small>
+
+                <strong id="selectedWind">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    CONDITION
+                </small>
+
+                <strong id="selectedCondition">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    RAIN CHANCE TODAY
+                </small>
+
+                <strong id="selectedRainChance">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="detail-box">
+
+                <small>
+                    UV INDEX
+                </small>
+
+                <strong id="selectedUV">
+                    —
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div
+            class="explanation"
+            id="districtExplanation"
+        >
+
+            Loading district analysis...
+
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     MAP
+========================================================= -->
+
+<section
+    class="container"
+    id="mapSection"
+>
+
+<div class="label">
+    GEOGRAPHIC VISUALIZATION
+</div>
+
+<h2 class="title">
+    West Bengal Monitoring Map
+</h2>
+
+<p class="description">
+    Red = deficit · Blue = monitor · Green = above reference
+</p>
+
+
+<div class="map-wrapper">
+
+    <div class="map">
+
+        <div id="leafletMap"></div>
+
+    </div>
+
+
+    <div class="map-panel">
+
+        <h3 id="mapDistrict">
+            Kolkata
+        </h3>
+
+        <p id="mapDescription">
+
+            Select a marker to inspect the district.
+
+        </p>
+
+    </div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     VOICE
+========================================================= -->
+
+<section
+    class="voice"
+    id="voice"
+>
+
+<div class="voice-card">
+
+    <div
+        class="voice-circle"
+        id="voiceCircle"
+    >
+        🎤
+    </div>
+
+    <h2>
+        Talk to VARSHA
+    </h2>
+
+    <p class="description">
+        Press Speak and ask your question.
+        Your microphone listens — VARSHA answers.
+    </p>
+
+    <div id="voiceStatus">
+        Microphone ready.
+    </div>
+
+    <div id="transcript">
+        Waiting for your question...
+    </div>
+
+    <button
+        class="voice-btn"
+        onclick="startListening()"
+        id="voiceButton"
+    >
+        🎤 Speak
+    </button>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     API ARCHITECTURE
+========================================================= -->
+
+<section class="container">
+
+<div class="label">
+    API ARCHITECTURE
+</div>
+
+<h2 class="title">
+    Ready for real data
+</h2>
+
+<p class="description">
+    Replace the demo functions with real API requests later.
+</p>
+
+
+<div class="api-panel">
+
+    <div class="api-row">
+
+        <div class="api-name">
+            🌧️ Weather API (Open-Meteo)
+        </div>
+
+        <div class="api-status ready">
+            LIVE
+        </div>
+
+    </div>
+
+
+    <div class="api-row">
+
+        <div class="api-name">
+            🌫️ Air Quality API (Open-Meteo)
+        </div>
+
+        <div class="api-status ready">
+            LIVE
+        </div>
+
+    </div>
+
+
+    <div class="api-row">
+
+        <div class="api-name">
+            🤖 VARSHA AI
+        </div>
+
+        <div class="api-status demo">
+            RULE ENGINE
+        </div>
+
+    </div>
+
+
+    <div class="api-row">
+
+        <div class="api-name">
+            🎤 Browser Speech Recognition
+        </div>
+
+        <div class="api-status ready">
+            READY
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     CLOUD SEEDING
+========================================================= -->
+
+<section class="seeding">
+
+<h2>
+    ☁️ Cloud Seeding Analysis
+</h2>
+
+<p>
+
+    A rainfall deficit is only an indicator for
+    further investigation. Cloud seeding requires
+    suitable existing clouds and atmospheric
+    conditions and should be evaluated by qualified
+    experts.
+
+</p>
+
+<div class="seeding-video" id="seedingVideoWrap">
+
+    <video
+        id="seedingVideo"
+        controls
+        preload="metadata"
+        playsinline
+    >
+        <source
+            id="seedingVideoSource"
+            src=""
+            type="video/mp4"
+        >
+    </video>
+
+</div>
+
+<button
+    class="primary"
+    onclick="openSeeding()"
+>
+    Open Seeding Visualization →
+</button>
+
+</section>
+
+<footer>
+
+<strong>
+    VARSHA•AI
+</strong>
+
+<p style="margin-top:10px;">
+    West Bengal Environmental Intelligence Prototype
+</p>
+
+<p style="margin-top:12px;font-size:10px;">
+
+    Demo environmental values are not official
+    measurements. Connect verified data APIs before
+    using the system for real-world decisions.
+
+</p>
+
+</footer>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+
+/* =========================================================
+   VARSHA API CONFIGURATION
+========================================================= */
+
+/*
+    THIS IS THE MOST IMPORTANT SECTION.
+
+    When you are ready to connect APIs, you mainly modify
+    the functions below.
+
+    Example future architecture:
+
+    getWeatherData()
+        ↓
+    Weather API
+
+    getAirQuality()
+        ↓
+    AQI API
+
+    askVARSHA()
+        ↓
+    Gemini/OpenAI API
+
+    Keep your private AI API key on a backend.
+*/
+
+
+const API_CONFIG = {
+
+    weatherAPI:
+        "PASTE_WEATHER_API_URL_HERE",
+
+    airQualityAPI:
+        "PASTE_AQI_API_URL_HERE",
+
+    aiAPI:
+        "PASTE_YOUR_BACKEND_AI_URL_HERE"
+
+};
+
+
+/* =========================================================
+   CLOUD SEEDING VIDEO
+
+   Paste the RAW GitHub URL of your uploaded video here.
+   To get it: open the video file on GitHub, click
+   "Download" / the ... menu, or just take the file's
+   normal GitHub URL and swap "github.com" for
+   "raw.githubusercontent.com" and remove "/blob".
+
+   Example:
+   https://github.com/USER/REPO/blob/main/seeding.mp4
+   becomes:
+   https://raw.githubusercontent.com/USER/REPO/main/seeding.mp4
+
+   Note: GitHub's normal repo upload limit is 25MB via the
+   website (100MB via git). For a bigger video, use a
+   GitHub "Release" asset link instead, or host it on
+   something built for video (YouTube unlisted, etc.) and
+   swap the <video> tag for an <iframe> embed.
+========================================================= */
+
+const SEEDING_VIDEO_URL=
+    "PASTE_YOUR_GITHUB_RAW_VIDEO_URL_HERE";
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+const LOGIN_USERNAME = "aayaan";
+const LOGIN_PASSWORD = "welcome";
+
+
+document
+.getElementById("loginForm")
+.addEventListener("submit",function(event){
+
+    event.preventDefault();
+
+    const username =
+        document
+        .getElementById("username")
+        .value
+        .trim();
+
+    const password =
+        document
+        .getElementById("password")
+        .value;
+
+
+    if(
+        username === LOGIN_USERNAME &&
+        password === LOGIN_PASSWORD
+    ){
+
+        const message =
+            document.getElementById(
+                "loginMessage"
+            );
+
+        message.style.color="#3ee3a0";
+
+        message.textContent=
+            "Login successful.";
+
+
+        setTimeout(function(){
+
+            document
+            .getElementById("loginScreen")
+            .classList.add("hidden");
+
+            document
+            .getElementById("app")
+            .classList.remove("hidden");
+
+
+            speak(
+                "Hello, welcome to VARSHA."
+            );
+
+
+            initialize();
+
+        },500);
+
+    }
+
+    else{
+
+        const message =
+            document.getElementById(
+                "loginMessage"
+            );
+
+        message.style.color="#ff6276";
+
+        message.textContent=
+            "Incorrect username or password.";
+
+    }
+
+});
+
+
+/* =========================================================
+   WEST BENGAL DISTRICTS
+========================================================= */
+
+const districts=[
+
+"Alipurduar",
+"Bankura",
+"Birbhum",
+"Cooch Behar",
+"Dakshin Dinajpur",
+"Darjeeling",
+"Hooghly",
+"Howrah",
+"Jalpaiguri",
+"Jhargram",
+"Kalimpong",
+"Kolkata",
+"Malda",
+"Murshidabad",
+"Nadia",
+"North 24 Parganas",
+"Paschim Bardhaman",
+"Paschim Medinipur",
+"Purba Bardhaman",
+"Purba Medinipur",
+"Purulia",
+"South 24 Parganas",
+"Uttar Dinajpur"
+
+];
+
+
+/* =========================================================
+   REAL DISTRICT COORDINATES (headquarters, approx.)
+   Used for both the Leaflet map and the live weather/AQI APIs.
+========================================================= */
+
+const districtCoords={
+
+"Alipurduar":         [26.4931, 89.5285],
+"Bankura":            [23.2324, 87.0708],
+"Birbhum":            [23.9002, 87.5306],
+"Cooch Behar":        [26.3527, 89.4489],
+"Dakshin Dinajpur":   [25.2183, 88.7683],
+"Darjeeling":         [27.0410, 88.2663],
+"Hooghly":            [22.9012, 88.3927],
+"Howrah":             [22.5958, 88.2636],
+"Jalpaiguri":         [26.5432, 88.7196],
+"Jhargram":           [22.4485, 86.9973],
+"Kalimpong":          [27.0669, 88.4713],
+"Kolkata":            [22.5726, 88.3639],
+"Malda":              [25.0108, 88.1420],
+"Murshidabad":        [24.0961, 88.2503],
+"Nadia":              [23.4058, 88.5023],
+"North 24 Parganas":  [22.7185, 88.4790],
+"Paschim Bardhaman":  [23.6739, 86.9524],
+"Paschim Medinipur":  [22.4257, 87.3199],
+"Purba Bardhaman":    [23.2324, 87.8615],
+"Purba Medinipur":    [22.2960, 87.9256],
+"Purulia":            [23.3320, 86.3616],
+"South 24 Parganas":  [22.1667, 88.4000],
+"Uttar Dinajpur":     [25.6143, 88.1236]
+
+};
+
+
+/* =========================================================
+   DEMO DATA LAYER
+========================================================= */
+
+/*
+    KEEP THIS FUNCTION.
+
+    Later replace the numbers with API data.
+
+    The rest of the website does NOT need to change.
+
+    Example:
+
+    const data =
+        await fetch(API_CONFIG.weatherAPI)
+        .then(response => response.json());
+
+*/
+
+
+const demoData={
+
+"Alipurduar":
+{
+    rainfall:1180,
+    normal:1320,
+    aqi:72,
+    humidity:78,
+    temp:29
+},
+
+"Bankura":
+{
+    rainfall:890,
+    normal:1050,
+    aqi:88,
+    humidity:64,
+    temp:31
+},
+
+"Birbhum":
+{
+    rainfall:930,
+    normal:1100,
+    aqi:84,
+    humidity:67,
+    temp:30
+},
+
+"Cooch Behar":
+{
+    rainfall:1260,
+    normal:1370,
+    aqi:68,
+    humidity:81,
+    temp:29
+},
+
+"Dakshin Dinajpur":
+{
+    rainfall:1080,
+    normal:1190,
+    aqi:71,
+    humidity:75,
+    temp:29
+},
+
+"Darjeeling":
+{
+    rainfall:1540,
+    normal:1600,
+    aqi:42,
+    humidity:84,
+    temp:20
+},
+
+"Hooghly":
+{
+    rainfall:1010,
+    normal:1120,
+    aqi:91,
+    humidity:70,
+    temp:31
+},
+
+"Howrah":
+{
+    rainfall:970,
+    normal:1090,
+    aqi:108,
+    humidity:71,
+    temp:31
+},
+
+"Jalpaiguri":
+{
+    rainfall:1380,
+    normal:1510,
+    aqi:62,
+    humidity:82,
+    temp:28
+},
+
+"Jhargram":
+{
+    rainfall:910,
+    normal:1080,
+    aqi:76,
+    humidity:68,
+    temp:31
+},
+
+"Kalimpong":
+{
+    rainfall:1490,
+    normal:1550,
+    aqi:39,
+    humidity:83,
+    temp:21
+},
+
+"Kolkata":
+{
+    rainfall:1020,
+    normal:1150,
+    aqi:118,
+    humidity:72,
+    temp:31
+},
+
+"Malda":
+{
+    rainfall:980,
+    normal:1120,
+    aqi:86,
+    humidity:69,
+    temp:32
+},
+
+"Murshidabad":
+{
+    rainfall:1040,
+    normal:1160,
+    aqi:89,
+    humidity:70,
+    temp:31
+},
+
+"Nadia":
+{
+    rainfall:1070,
+    normal:1160,
+    aqi:82,
+    humidity:72,
+    temp:30
+},
+
+"North 24 Parganas":
+{
+    rainfall:1000,
+    normal:1130,
+    aqi:101,
+    humidity:73,
+    temp:31
+},
+
+"Paschim Bardhaman":
+{
+    rainfall:820,
+    normal:1010,
+    aqi:112,
+    humidity:63,
+    temp:32
+},
+
+"Paschim Medinipur":
+{
+    rainfall:950,
+    normal:1100,
+    aqi:78,
+    humidity:68,
+    temp:31
+},
+
+"Purba Bardhaman":
+{
+    rainfall:1020,
+    normal:1130,
+    aqi:94,
+    humidity:70,
+    temp:31
+},
+
+"Purba Medinipur":
+{
+    rainfall:1120,
+    normal:1210,
+    aqi:74,
+    humidity:76,
+    temp:30
+},
+
+"Purulia":
+{
+    rainfall:760,
+    normal:980,
+    aqi:81,
+    humidity:59,
+    temp:32
+},
+
+"South 24 Parganas":
+{
+    rainfall:1150,
+    normal:1270,
+    aqi:79,
+    humidity:78,
+    temp:30
+},
+
+"Uttar Dinajpur":
+{
+    rainfall:1110,
+    normal:1220,
+    aqi:69,
+    humidity:77,
+    temp:29
+}
+
+};
+
+
+/* =========================================================
+   DATA ACCESS FUNCTION
+========================================================= */
+
+/*
+    FUTURE API VERSION:
+
+    Change ONLY this function.
+
+    Example:
+
+    async function getDistrictData(name){
+
+        const response =
+            await fetch(
+                API_CONFIG.weatherAPI
+            );
+
+        const data =
+            await response.json();
+
+        return {
+            rainfall:data.rainfall,
+            normal:data.normal,
+            aqi:data.aqi,
+            humidity:data.humidity,
+            temp:data.temperature
+        };
+
+    }
+
+*/
+
+async function getDistrictData(name){
+
+    const baseline=
+        demoData[name];
+
+    const coords=
+        districtCoords[name];
+
+    if(!coords){
+
+        return baseline;
+
+    }
+
+
+    const [lat,lon]=
+        coords;
+
+
+    const [liveWeather,liveAQI]=
+        await Promise.all([
+            getLiveWeather(lat,lon),
+            getLiveAQI(lat,lon)
+        ]);
+
+
+    if(!liveWeather && !liveAQI){
+
+        return{
+            ...baseline,
+            live:false
+        };
+
+    }
+
+
+    return{
+
+        rainfall:baseline.rainfall,
+        normal:baseline.normal,
+
+        aqi:
+            liveAQI!==null
+            ? liveAQI
+            : baseline.aqi,
+
+        humidity:
+            liveWeather && liveWeather.humidity!==null
+            ? liveWeather.humidity
+            : baseline.humidity,
+
+        temp:
+            liveWeather && liveWeather.temp!==null
+            ? liveWeather.temp
+            : baseline.temp,
+
+        feelsLike:
+            liveWeather ? liveWeather.feelsLike : null,
+
+        windSpeed:
+            liveWeather ? liveWeather.windSpeed : null,
+
+        condition:
+            liveWeather ? liveWeather.condition : null,
+
+        uvIndex:
+            liveWeather ? liveWeather.uvIndex : null,
+
+        rainChance:
+            liveWeather ? liveWeather.rainChance : null,
+
+        live:true
+
+    };
+
+}
+
+
+/* =========================================================
+   RAINFALL CALCULATION
+========================================================= */
+
+function calculateDeparture(data){
+
+    if(
+        !data ||
+        !Number.isFinite(data.rainfall) ||
+        !Number.isFinite(data.normal) ||
+        data.normal===0
+    ){
+
+        return 0;
+
+    }
+
+
+    return(
+        (
+            (data.rainfall-data.normal)
+            /
+            data.normal
+        )
+        *100
+    );
+
+}
+
+
+/* =========================================================
+   DISTRICT STATUS
+========================================================= */
+
+function classifyRainfall(departure){
+
+    if(departure <= -15){
+
+        return{
+            label:"Rainfall deficit",
+            color:"red"
+        };
+
+    }
+
+
+    if(departure >= 15){
+
+        return{
+            label:"Above reference",
+            color:"green"
+        };
+
+    }
+
+
+    return{
+        label:"Monitor",
+        color:"blue"
+    };
+
+}
+
+
+/* =========================================================
+   DISTRICT LIST
+========================================================= */
+
+function renderDistricts(list=districts){
+
+    const container =
+        document.getElementById(
+            "districtButtons"
+        );
+
+
+    container.innerHTML="";
+
+
+    list.forEach(function(name){
+
+        const data =
+            demoData[name];
+
+        const departure =
+            calculateDeparture(data);
+
+        const status =
+            classifyRainfall(departure);
+
+
+        const button =
+            document.createElement("button");
+
+        button.className="district";
+
+
+        button.innerHTML=`
+
+            <span>${name}</span>
+
+            <span
+                class="indicator ${status.color}">
+            </span>
+
+        `;
+
+
+        button.onclick=function(){
+
+            selectDistrict(name);
+
+        };
+
+
+        container.appendChild(button);
+
+    });
+
+}
+
+
+/* =========================================================
+   FILTER
+========================================================= */
+
+function filterDistricts(){
+
+    const search =
+        document
+        .getElementById("districtSearch")
+        .value
+        .toLowerCase();
+
+
+    const filtered =
+        districts.filter(function(name){
+
+            return name
+            .toLowerCase()
+            .includes(search);
+
+        });
+
+
+    renderDistricts(filtered);
+
+}
+
+
+/* =========================================================
+   SELECT DISTRICT
+========================================================= */
+
+async function selectDistrict(name){
+
+    const data =
+        await getDistrictData(name);
+
+
+    if(!data){
+
+        showToast(
+            "No data available."
+        );
+
+        return;
+
+    }
+
+
+    const departure =
+        calculateDeparture(data);
+
+
+    const status =
+        classifyRainfall(departure);
+
+
+    document
+    .getElementById("selectedDistrict")
+    .textContent=name;
+
+
+    const statusElement =
+        document
+        .getElementById("selectedStatus");
+
+
+    statusElement.textContent=
+        "● "+status.label;
+
+
+    statusElement.style.color=
+        status.color==="red"
+        ? "#ff6276"
+        : status.color==="green"
+        ? "#3ee3a0"
+        : "#4cbcff";
+
+
+    document
+    .getElementById("selectedRainfall")
+    .textContent=
+        data.rainfall+" mm";
+
+
+    document
+    .getElementById("selectedNormal")
+    .textContent=
+        data.normal+" mm";
+
+
+    document
+    .getElementById("selectedDeparture")
+    .textContent=
+        departure.toFixed(1)+"%";
+
+
+    document
+    .getElementById("selectedAQI")
+    .textContent=
+        data.aqi;
+
+
+    document
+    .getElementById("selectedHumidity")
+    .textContent=
+        data.humidity+"%";
+
+
+    document
+    .getElementById("selectedTemperature")
+    .textContent=
+        data.temp+"°C";
+
+
+    document
+    .getElementById("selectedFeelsLike")
+    .textContent=
+
+        Number.isFinite(data.feelsLike)
+        ? data.feelsLike+"°C"
+        : "—";
+
+
+    document
+    .getElementById("selectedWind")
+    .textContent=
+
+        Number.isFinite(data.windSpeed)
+        ? data.windSpeed+" km/h"
+        : "—";
+
+
+    document
+    .getElementById("selectedCondition")
+    .textContent=
+
+        data.condition
+        ? data.condition
+        : "—";
+
+
+    document
+    .getElementById("selectedRainChance")
+    .textContent=
+
+        Number.isFinite(data.rainChance)
+        ? data.rainChance+"%"
+        : "—";
+
+
+    document
+    .getElementById("selectedUV")
+    .textContent=
+
+        Number.isFinite(data.uvIndex)
+        ? data.uvIndex
+        : "—";
+
+
+    document
+    .getElementById("districtExplanation")
+    .textContent=
+
+        name+
+        " has a reference rainfall value of "+
+        data.rainfall+
+        " mm against a baseline of "+
+        data.normal+
+        " mm. The calculated departure is "+
+        departure.toFixed(1)+
+        "%. VARSHA therefore classifies the region as "+
+        status.label+
+        "."+
+        (
+            data.live
+            ? " Temperature, humidity and AQI above are live readings from Open-Meteo. The rainfall/reference figures are still baseline data until a historical rainfall API is connected."
+            : " Live weather data could not be reached, so all figures shown are baseline demo values."
+        );
+
+
+    document
+    .getElementById("mapDistrict")
+    .textContent=name;
+
+
+    document
+    .getElementById("mapDescription")
+    .textContent=
+
+        "Rainfall departure: "+
+        departure.toFixed(1)+
+        "%. Status: "+
+        status.label+
+        ". AQI: "+
+        data.aqi+".";
+
+
+    showToast(
+        name+" selected"
+    );
+
+}
+
+
+/* =========================================================
+   MAP
+========================================================= */
+
+/*
+    Real Leaflet map of West Bengal using OpenStreetMap /
+    CartoDB tiles (both free, no API key required).
+    Markers sit at each district's real coordinates.
+*/
+
+let leafletMap=null;
+const districtMarkers={};
+
+
+function buildMap(){
+
+    if(
+        typeof L === "undefined"
+    ){
+
+        console.error(
+            "Leaflet failed to load - check network access."
+        );
+
+        return;
+
+    }
+
+
+    if(leafletMap){
+
+        leafletMap.remove();
+
+    }
+
+
+    leafletMap=
+        L.map("leafletMap",{
+            zoomControl:true,
+            scrollWheelZoom:false
+        }).setView(
+            [23.6, 87.9],
+            7
+        );
+
+
+    /*
+        Standard OpenStreetMap tiles — free, no API key,
+        no watermark, and no account required (unlike CARTO's
+        raster basemaps, which now require a key). A CSS filter
+        on .leaflet-tile-pane below re-tints the tiles dark to
+        match the VARSHA theme.
+    */
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            subdomains:"abc",
+            maxZoom:19
+        }
+    ).addTo(leafletMap);
+
+
+    const statusHex={
+        red:"#ff6276",
+        blue:"#4cbcff",
+        green:"#3ee3a0"
+    };
+
+
+    districts.forEach(function(name){
+
+        const coords=
+            districtCoords[name];
+
+        if(!coords){
+
+            return;
+
+        }
+
+
+        const data=
+            demoData[name];
+
+        const departure=
+            calculateDeparture(data);
+
+        const status=
+            classifyRainfall(departure);
+
+
+        const icon=
+            L.divIcon({
+                className:"",
+                html:
+                    '<div class="district-marker '+
+                    status.color+
+                    '" style="width:26px;height:26px;"></div>',
+                iconSize:[26,26],
+                iconAnchor:[13,13]
+            });
+
+
+        const marker=
+            L.marker(coords,{icon:icon})
+            .addTo(leafletMap)
+            .bindPopup(
+                "<strong>"+name+"</strong><br>"+
+                "Status: "+status.label+
+                " &middot; Departure: "+
+                departure.toFixed(1)+"%"
+            );
+
+
+        marker.on("click",function(){
+
+            selectDistrict(name);
+
+        });
+
+
+        districtMarkers[name]=
+            marker;
+
+    });
+
+
+    setTimeout(function(){
+
+        if(leafletMap){
+
+            leafletMap.invalidateSize();
+
+        }
+
+    },300);
+
+}
+
+
+/* =========================================================
+   VOICE RECOGNITION
+========================================================= */
+
+let recognition=null;
+
+
+const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+
+if(SpeechRecognition){
+
+    recognition =
+        new SpeechRecognition();
+
+    recognition.lang="en-IN";
+
+    recognition.continuous=false;
+
+    recognition.interimResults=false;
+
+
+    recognition.onstart=function(){
+
+        document
+        .getElementById("voiceCircle")
+        .classList.add("listening");
+
+
+        document
+        .getElementById("voiceStatus")
+        .textContent=
+        "🎙️ Listening...";
+
+
+        document
+        .getElementById("voiceButton")
+        .textContent=
+        "Listening...";
+
+    };
+
+
+    recognition.onresult=function(event){
+
+        const text =
+            event
+            .results[0][0]
+            .transcript
+            .trim();
+
+
+        document
+        .getElementById("transcript")
+        .textContent=
+        "You: "+text;
+
+
+        askVARSHA(text);
+
+    };
+
+
+    recognition.onerror=function(event){
+
+        document
+        .getElementById("voiceStatus")
+        .textContent=
+        "Voice error: "+event.error;
+
+    };
+
+
+    recognition.onend=function(){
+
+        document
+        .getElementById("voiceCircle")
+        .classList.remove("listening");
+
+
+        document
+        .getElementById("voiceStatus")
+        .textContent=
+        "Microphone ready.";
+
+
+        document
+        .getElementById("voiceButton")
+        .textContent=
+        "🎤 Speak";
+
+    };
+
+}
+
+
+function startListening(){
+
+    if(!recognition){
+
+        showToast(
+            "Voice recognition is not supported in this browser."
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        recognition.start();
+
+    }
+
+    catch(error){
+
+        console.log(error);
+
+    }
+
+}
+
+
+/* =========================================================
+   VARSHA QUESTION ENGINE
+========================================================= */
+
+/*
+    FUTURE AI VERSION:
+
+    Instead of the rules below:
+
+        fetch(API_CONFIG.aiAPI)
+
+    Send:
+
+        question
+        weather data
+        district data
+
+    to your backend AI.
+
+    NEVER expose a private Gemini/OpenAI key
+    directly in this HTML file.
+*/
+
+
+async function askVARSHA(question){
+
+    const q =
+        question
+        .toLowerCase()
+        .replace(/[?!.,]/g,"");
+
+
+    let answer="";
+
+
+    /* -----------------------------------------------
+       DISTRICT QUESTION
+    ------------------------------------------------ */
+
+    const district =
+        districts.find(function(name){
+
+            return q.includes(
+                name.toLowerCase()
+            );
+
+        });
+
+
+    if(district){
+
+        const data =
+            demoData[district];
+
+        const departure =
+            calculateDeparture(data);
+
+        const status =
+            classifyRainfall(departure);
+
+
+        selectDistrict(district);
+
+
+        if(
+            q.includes("rain") ||
+            q.includes("rainfall") ||
+            q.includes("weather")
+        ){
+
+            answer=
+                district+
+                " has a demonstration rainfall value of "+
+                data.rainfall+
+                " millimeters. The calculated rainfall departure is "+
+                departure.toFixed(1)+
+                " percent. VARSHA currently classifies it as "+
+                status.label+".";
+
+        }
+
+        else if(
+            q.includes("aqi") ||
+            q.includes("air")
+        ){
+
+            answer=
+                "The demonstration AQI for "+
+                district+
+                " is "+
+                data.aqi+
+                ".";
+
+        }
+
+        else{
+
+            answer=
+                "I found "+
+                district+
+                ". Its rainfall departure is "+
+                departure.toFixed(1)+
+                " percent and its demonstration AQI is "+
+                data.aqi+".";
+
+        }
+
+    }
+
+
+    /* -----------------------------------------------
+       LOWEST RAINFALL
+    ------------------------------------------------ */
+
+    else if(
+        q.includes("which district") &&
+        (
+            q.includes("needs rain") ||
+            q.includes("rain deficit") ||
+            q.includes("least rain")
+        )
+    ){
+
+        const sorted =
+            [...districts]
+            .sort(function(a,b){
+
+                return(
+                    calculateDeparture(
+                        demoData[a]
+                    )
+                    -
+                    calculateDeparture(
+                        demoData[b]
+                    )
+                );
+
+            });
+
+
+        const worst =
+            sorted[0];
+
+
+        answer=
+            "In the current demonstration dataset, "+
+            worst+
+            " has the largest rainfall deficit, at approximately "+
+            calculateDeparture(
+                demoData[worst]
+            ).toFixed(1)+
+            " percent.";
+
+    }
+
+
+    /* -----------------------------------------------
+       TOMORROW
+    ------------------------------------------------ */
+
+    else if(
+        q.includes("tomorrow") ||
+        q.includes("will it rain")
+    ){
+
+        answer=
+            "I am ready for a real weather API, but this prototype is not yet connected to live forecast data. Once connected, I can analyse forecast precipitation, humidity, temperature and other weather variables.";
+
+    }
+
+
+    /* -----------------------------------------------
+       ALL DISTRICTS
+    ------------------------------------------------ */
+
+    else if(
+        q.includes("how many districts") ||
+        q.includes("all districts")
+    ){
+
+        answer=
+            "VARSHA currently covers all 23 districts of West Bengal.";
+
+    }
+
+
+    /* -----------------------------------------------
+       AQI
+    ------------------------------------------------ */
+
+    else if(
+        q.includes("aqi") ||
+        q.includes("air quality")
+    ){
+
+        answer=
+            "AQI stands for Air Quality Index. VARSHA is designed to combine air quality information with rainfall and atmospheric conditions.";
+
+    }
+
+
+    /* -----------------------------------------------
+       CLOUD SEEDING
+    ------------------------------------------------ */
+
+    else if(
+        q.includes("cloud seeding") ||
+        q.includes("what is cloud seeding")
+    ){
+
+        answer=
+            "Cloud seeding is a weather modification technique intended to enhance precipitation from suitable existing clouds. It cannot create rain from a clear sky, and outcomes are not guaranteed.";
+
+    }
+
+
+    /* -----------------------------------------------
+       HOW VARSHA WORKS
+    ------------------------------------------------ */
+
+    else if(
+        q.includes("how does varsha work") ||
+        q.includes("what is varsha")
+    ){
+
+        answer=
+            "VARSHA collects environmental information, compares rainfall with reference values, visualizes district conditions and provides explanations through voice. The next stage is connecting verified APIs and a secure AI backend.";
+
+    }
+
+
+    /* -----------------------------------------------
+       DATA
+    ------------------------------------------------ */
+
+    else if(
+        q.includes("data") ||
+        q.includes("source")
+    ){
+
+        answer=
+            "The district structure is prepared for real data integration. The environmental numbers currently visible are demonstration values and should be replaced with verified meteorological and air quality observations.";
+
+    }
+
+
+    /* -----------------------------------------------
+       GREETING
+    ------------------------------------------------ */
+
+    else if(
+        q.includes("hello") ||
+        q.includes("hi")
+    ){
+
+        answer=
+            "Hello. I am VARSHA. Ask me about rainfall, districts, AQI, weather or cloud seeding.";
+
+    }
+
+
+    /* -----------------------------------------------
+       DEFAULT
+    ------------------------------------------------ */
+
+    else{
+
+        answer=
+            "I can answer questions about West Bengal districts, rainfall, AQI, weather, rainfall deficit, cloud seeding and how VARSHA works.";
+
+    }
+
+
+    document
+    .getElementById("transcript")
+    .textContent=
+        "VARSHA: "+answer;
+
+
+    speak(answer);
+
+}
+
+
+/* =========================================================
+   TEXT TO SPEECH
+========================================================= */
+
+function speak(text){
+
+    if(
+        !("speechSynthesis" in window)
+    ){
+
+        return;
+
+    }
+
+
+    speechSynthesis.cancel();
+
+
+    const voice =
+        new SpeechSynthesisUtterance(
+            text
+        );
+
+
+    voice.lang="en-IN";
+
+    voice.rate=.92;
+
+    voice.pitch=1;
+
+    voice.volume=1;
+
+
+    speechSynthesis.speak(
+        voice
+    );
+
+}
+
+
+/* =========================================================
+   WMO WEATHER CODE → TEXT
+   (Open-Meteo returns numeric WMO codes; this maps them
+   to a short human-readable condition.)
+========================================================= */
+
+function describeWeatherCode(code){
+
+    const map={
+        0:"Clear sky",
+        1:"Mainly clear",
+        2:"Partly cloudy",
+        3:"Overcast",
+        45:"Fog",
+        48:"Depositing rime fog",
+        51:"Light drizzle",
+        53:"Moderate drizzle",
+        55:"Dense drizzle",
+        61:"Slight rain",
+        63:"Moderate rain",
+        65:"Heavy rain",
+        66:"Freezing rain",
+        67:"Heavy freezing rain",
+        71:"Slight snow",
+        73:"Moderate snow",
+        75:"Heavy snow",
+        80:"Slight rain showers",
+        81:"Moderate rain showers",
+        82:"Violent rain showers",
+        95:"Thunderstorm",
+        96:"Thunderstorm with hail",
+        99:"Severe thunderstorm with hail"
+    };
+
+
+    return(
+        map[code] ||
+        "Unknown"
+    );
+
+}
+
+
+/* =========================================================
+   LIVE WEATHER API (Open-Meteo — free, no key required)
+========================================================= */
+
+async function getLiveWeather(latitude,longitude){
+
+    const url=
+        "https://api.open-meteo.com/v1/forecast"+
+        "?latitude="+latitude+
+        "&longitude="+longitude+
+        "&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,apparent_temperature"+
+        "&daily=uv_index_max,precipitation_probability_max,sunrise,sunset"+
+        "&timezone=auto";
+
+
+    const controller=
+        new AbortController();
+
+    const timeout=
+        setTimeout(function(){
+
+            controller.abort();
+
+        },6000);
+
+
+    try{
+
+        const response=
+            await fetch(url,{
+                signal:controller.signal
+            });
+
+        clearTimeout(timeout);
+
+
+        if(!response.ok){
+
+            throw new Error(
+                "Weather API failed"
+            );
+
+        }
+
+
+        const data=
+            await response.json();
+
+        const current=
+            data.current || {};
+
+        const daily=
+            data.daily || {};
+
+
+        return{
+
+            temp:
+                Number.isFinite(current.temperature_2m)
+                ? Math.round(current.temperature_2m)
+                : null,
+
+            feelsLike:
+                Number.isFinite(current.apparent_temperature)
+                ? Math.round(current.apparent_temperature)
+                : null,
+
+            humidity:
+                Number.isFinite(current.relative_humidity_2m)
+                ? Math.round(current.relative_humidity_2m)
+                : null,
+
+            precipitation:
+                Number.isFinite(current.precipitation)
+                ? current.precipitation
+                : null,
+
+            windSpeed:
+                Number.isFinite(current.wind_speed_10m)
+                ? Math.round(current.wind_speed_10m)
+                : null,
+
+            condition:
+                describeWeatherCode(
+                    current.weather_code
+                ),
+
+            uvIndex:
+                Array.isArray(daily.uv_index_max) &&
+                Number.isFinite(daily.uv_index_max[0])
+                ? Math.round(daily.uv_index_max[0])
+                : null,
+
+            rainChance:
+                Array.isArray(daily.precipitation_probability_max) &&
+                Number.isFinite(daily.precipitation_probability_max[0])
+                ? daily.precipitation_probability_max[0]
+                : null
+
+        };
+
+    }
+
+    catch(error){
+
+        clearTimeout(timeout);
+
+        console.error(
+            "getLiveWeather error:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* =========================================================
+   LIVE AIR QUALITY API (Open-Meteo — free, no key required)
+========================================================= */
+
+async function getLiveAQI(latitude,longitude){
+
+    const url=
+        "https://air-quality-api.open-meteo.com/v1/air-quality"+
+        "?latitude="+latitude+
+        "&longitude="+longitude+
+        "&current=us_aqi"+
+        "&timezone=auto";
+
+
+    const controller=
+        new AbortController();
+
+    const timeout=
+        setTimeout(function(){
+
+            controller.abort();
+
+        },6000);
+
+
+    try{
+
+        const response=
+            await fetch(url,{
+                signal:controller.signal
+            });
+
+        clearTimeout(timeout);
+
+
+        if(!response.ok){
+
+            throw new Error(
+                "AQI API failed"
+            );
+
+        }
+
+
+        const data=
+            await response.json();
+
+        const current=
+            data.current || {};
+
+
+        return(
+            Number.isFinite(current.us_aqi)
+            ? Math.round(current.us_aqi)
+            : null
+        );
+
+    }
+
+    catch(error){
+
+        clearTimeout(timeout);
+
+        console.error(
+            "getLiveAQI error:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* =========================================================
+   FUTURE AI API FUNCTION
+========================================================= */
+
+async function askRealAI(question,context){
+
+    /*
+        IMPORTANT:
+
+        Do not put a Gemini/OpenAI secret key here.
+
+        Your production architecture should be:
+
+        Browser
+           ↓
+        Your backend
+           ↓
+        AI API
+
+        Example:
+
+        fetch(API_CONFIG.aiAPI,{
+            method:"POST",
+            headers:{
+                "Content-Type":
+                    "application/json"
+            },
+            body:JSON.stringify({
+                question:question,
+                context:context
+            })
+        });
+
+    */
+
+    return null;
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function scrollToSection(id){
+
+    const element =
+        document.getElementById(id);
+
+
+    if(element){
+
+        element.scrollIntoView({
+            behavior:"smooth"
+        });
+
+    }
+
+}
+
+
+/* =========================================================
+   SEEDING PAGE
+========================================================= */
+
+function openSeeding(){
+
+    window.location.href=
+        "seeding.html";
+
+}
+
+
+/* =========================================================
+   PARTICLES
+========================================================= */
+
+function createParticles(){
+
+    const container =
+        document.getElementById(
+            "particles"
+        );
+
+
+    for(
+        let i=0;
+        i<70;
+        i++
+    ){
+
+        const particle =
+            document.createElement(
+                "span"
+            );
+
+
+        particle.className=
+            "particle";
+
+
+        particle.style.left=
+            Math.random()*100+"%";
+
+
+        particle.style.animationDuration=
+            (8+Math.random()*18)+"s";
+
+
+        particle.style.animationDelay=
+            (-Math.random()*20)+"s";
+
+
+        container.appendChild(
+            particle
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+let toastTimer;
+
+
+function showToast(message){
+
+    const toast =
+        document.getElementById(
+            "toast"
+        );
+
+
+    toast.textContent=
+        message;
+
+
+    toast.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        toastTimer
+    );
+
+
+    toastTimer =
+        setTimeout(function(){
+
+            toast.classList.remove(
+                "show"
+            );
+
+        },2500);
+
+}
+
+
+/* =========================================================
+   CLOUD SEEDING VIDEO LOADER
+========================================================= */
+
+function loadSeedingVideo(){
+
+    const wrap=
+        document.getElementById(
+            "seedingVideoWrap"
+        );
+
+    const video=
+        document.getElementById(
+            "seedingVideo"
+        );
+
+    const source=
+        document.getElementById(
+            "seedingVideoSource"
+        );
+
+
+    if(
+
+        !SEEDING_VIDEO_URL ||
+        SEEDING_VIDEO_URL.includes(
+            "PASTE_YOUR_GITHUB_RAW_VIDEO_URL_HERE"
+        )
+
+    ){
+
+        wrap.innerHTML=
+            '<div class="seeding-video-fallback">' +
+            'Cloud seeding visualization video not linked yet. ' +
+            'Add your GitHub raw video URL to SEEDING_VIDEO_URL near the top of the script.' +
+            '</div>';
+
+        return;
+
+    }
+
+
+    source.src=
+        SEEDING_VIDEO_URL;
+
+    video.load();
+
+
+    video.addEventListener("error",function(){
+
+        wrap.innerHTML=
+            '<div class="seeding-video-fallback">' +
+            'The video could not be loaded from the linked URL. ' +
+            '<a href="'+SEEDING_VIDEO_URL+'" target="_blank" rel="noopener">Open it directly</a> ' +
+            'or double check the link is a raw.githubusercontent.com URL.' +
+            '</div>';
+
+    });
+
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+function initialize(){
+
+    renderDistricts();
+
+    buildMap();
+
+    selectDistrict(
+        "Kolkata"
+    );
+
+    createParticles();
+
+    loadSeedingVideo();
+
+}
+
+
+/* =========================================================
+   SAFETY / ERROR HANDLING
+========================================================= */
+
+window.addEventListener(
+    "error",
+    function(event){
+
+        console.error(
+            "VARSHA error:",
+            event.error
+        );
+
+    }
+);
+
+</script>
+
+</body>
+</html>
