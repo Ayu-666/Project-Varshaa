@@ -2,7 +2,7 @@
 
 AI-Driven GIS Platform for Cloud Seeding & Crop Protection
 
-Submission for Smart India Hackathon (SIH) 2026 | Team: The Axiom | Problem Statement: SIH26076
+Team: The Axiom | Problem Statement: SIH26076
 
 🌍 Overview
 
